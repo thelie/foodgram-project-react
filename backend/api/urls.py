@@ -5,6 +5,4 @@ app_name = "api"
 
 router = DefaultRouter()
 
-urlpatterns = (
-    path("", include(router.urls)),
-)
+urlpatterns = (path("", include(router.urls)),)

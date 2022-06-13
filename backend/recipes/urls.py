@@ -1,4 +1,3 @@
-app_name = 'recipes'
+app_name = "recipes"
 
-urlpatterns = [
-]
+urlpatterns = []
