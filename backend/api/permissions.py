@@ -40,7 +40,5 @@ class OwnerUserOrReadOnly(IsAuthenticatedOrReadOnly):
 
     def has_object_permission(self, request, view, obj):
         return (
-            request.method in ("GET",)
-            or (request.user == obj)
-            or request.user.is_admin
+            request.method in ("GET",) or (request.user == obj) or request.user.is_admin
         )

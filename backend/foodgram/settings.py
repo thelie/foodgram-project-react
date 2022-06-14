@@ -11,7 +11,7 @@ ALLOWED_HOSTS = []
 ROOT_URLCONF = "foodgram.urls"
 
 WSGI_APPLICATION = "foodgram.wsgi.application"
-
+PAGE_SIZE = 6
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -43,7 +43,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.TokenAuthentication",
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 6,
+    "PAGE_SIZE": PAGE_SIZE,
 }
 
 TEMPLATES = [
@@ -117,3 +117,8 @@ MEDIA_ROOT = BASE_DIR / MEDIA_URL
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 EMPTY_VALUE_DISPLAY = "--empty--"
+
+
+MAX_CHARFIELD_LENGTH = 150
+MAX_EMAIL_LENGTH = 255
+MIN_USERNAME_LENGTH = 3
