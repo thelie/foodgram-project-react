@@ -1,6 +1,5 @@
-from django.db.models import F
 from django.contrib.auth import get_user_model
-from rest_framework.settings import api_settings
+from django.db.models import F
 from drf_extra_fields.fields import Base64ImageField
 from recipes.models import Ingredient, Recipe, Tag
 from rest_framework.serializers import (
@@ -8,6 +7,7 @@ from rest_framework.serializers import (
     SerializerMethodField,
     ValidationError,
 )
+from rest_framework.settings import api_settings
 
 from .services import set_amount_ingredients
 
@@ -59,7 +59,7 @@ class UserSerializer(ModelSerializer):
             )
         if not username.isalpha():
             raise ValidationError("В username допустимы только буквы.")
-        return username
+        return username.capitalize()
 
 
 class UserSubscribeSerializer(UserSerializer):
@@ -80,7 +80,7 @@ class UserSubscribeSerializer(UserSerializer):
         )
         read_only_fields = ("__all__",)
 
-    def get_is_subscribed(self, obj):
+    def get_is_subscribed(*args):
         return True
 
     def get_recipes(self, obj):
@@ -120,10 +120,10 @@ class IngredientSerializer(ModelSerializer):
 class RecipeSerializer(ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     author = UserSerializer(read_only=True)
+    ingredients = SerializerMethodField()
     is_favorited = SerializerMethodField()
     is_in_shopping_cart = SerializerMethodField()
     image = Base64ImageField()
-    ingredients = SerializerMethodField()
 
     class Meta:
         model = Recipe
@@ -164,8 +164,6 @@ class RecipeSerializer(ModelSerializer):
 
     def validate(self, data):
         name = str(self.initial_data.get("name")).strip()
-        if not name.isalpha():
-            raise ValidationError("В именах и названиях принимаются только буквы")
 
         tags = self.initial_data.get("tags")
         if not isinstance(tags, list):
@@ -203,9 +201,10 @@ class RecipeSerializer(ModelSerializer):
         return data
 
     def create(self, validated_data):
+        image = validated_data.pop("image")
         tags = validated_data.pop("tags")
         ingredients = validated_data.pop("ingredients")
-        recipe = Recipe.objects.create(**validated_data)
+        recipe = Recipe.objects.create(image=image, **validated_data)
         recipe.tags.set(tags)
         set_amount_ingredients(recipe, ingredients)
         return recipe

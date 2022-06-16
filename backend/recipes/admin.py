@@ -2,12 +2,12 @@ from django.contrib.admin import ModelAdmin, TabularInline, register, site
 from django.utils.safestring import mark_safe
 
 from .models import (
+    AmountIngredient,
     Favorite,
     Ingredient,
-    AmountIngredient,
     Recipe,
-    Subscription,
     ShoppingCart,
+    Subscription,
     Tag,
 )
 

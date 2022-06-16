@@ -18,7 +18,6 @@ from django.db.models import (
 from django.db.models.functions import Length
 from django.forms import ValidationError
 
-
 CharField.register_lookup(Length)
 
 User = get_user_model()

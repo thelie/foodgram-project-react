@@ -1,17 +1,23 @@
 from pathlib import Path
+from decouple import config
+
+DEBUG = config("DEBUG", default=True)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "django-insecure-s8n6!f(8mf#*^e3pmdfo&h)6j0@w(4r)m!r#m1!)ia4$*)rm3*"
+SECRET_KEY = config("SECRET_KEY", default="string_from_.env")
 
-DEBUG = True
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*").split()
 
-ALLOWED_HOSTS = []
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS", default="http://localhost http://127.0.0.1"
+).split()
 
 ROOT_URLCONF = "foodgram.urls"
 
 WSGI_APPLICATION = "foodgram.wsgi.application"
-PAGE_SIZE = 6
+
+AUTH_USER_MODEL = "users.MyUser"
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -20,12 +26,14 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "djoser",
     "rest_framework",
     "rest_framework.authtoken",
+    "djoser",
+    "django_filters",
     "api.apps.ApiConfig",
     "recipes.apps.RecipesConfig",
     "users.apps.UsersConfig",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [
@@ -38,18 +46,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.TokenAuthentication",
-    ],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": PAGE_SIZE,
-}
-
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -62,17 +62,16 @@ TEMPLATES = [
     },
 ]
 
-# Database
-# https://docs.djangoproject.com/en/4.0/ref/settings/#databases
-
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": config("DB_ENGINE", default="django.db.backends.postgresql"),
+        "NAME": config("DB_NAME", default="postgres"),
+        "USER": config("POSTGRES_USER", default="postgres"),
+        "PASSWORD": config("POSTGRES_PASSWORD", default="password"),
+        "HOST": config("DB_HOST", default="db"),
+        "PORT": config("DB_PORT", default=5432),
     }
 }
-
-AUTH_USER_MODEL = "users.User"
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -89,20 +88,31 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+REST_FRAMEWORK = {
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+    ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 6,
+}
+
 DJOSER = {
     "LOGIN_FIELD": "email",
     "HIDE_USERS": False,
     "PERMISSIONS": {
-        "recipe": ("api.permissions.AuthorStaffOrReadOnly,",),
-        "recipe_list": ("api.permissions.AuthorStaffOrReadOnly",),
-        "user": ("api.permissions.OwnerUserOrReadOnly",),
-        "user_list": ("api.permissions.OwnerUserOrReadOnly",),
+        "resipe": ("rest_framework.permissions.AllowAny",),
+        "recipe_list": ("rest_framework.permissions.AllowAny",),
+        "user": ("rest_framework.permissions.AllowAny",),
+        "user_list": ("rest_framework.permissions.AllowAny",),
     },
     "SERIALIZERS": {
-        "user": "users.serializers.UserSerializer",
-        "user_list": "users.serializers.UserSerializer",
-        "current_user": "users.serializers.UserSerializer",
-        "user_create": "users.serializers.UserSerializer",
+        "user": "api.serializers.UserSerializer",
+        "user_list": "api.serializers.UserSerializer",
+        "current_user": "api.serializers.UserSerializer",
+        "user_create": "api.serializers.UserSerializer",
     },
 }
 
@@ -112,13 +122,19 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / STATIC_URL
+
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / MEDIA_URL
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-EMPTY_VALUE_DISPLAY = "--empty--"
 
+if DEBUG:
+    import os
 
-MAX_CHARFIELD_LENGTH = 150
-MAX_EMAIL_LENGTH = 255
-MIN_USERNAME_LENGTH = 3
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+        }
+    }
