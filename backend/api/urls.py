@@ -5,13 +5,13 @@ from .views import IngredientViewSet, RecipeViewSet, TagViewSet, UserViewSet
 
 app_name = "api"
 
-router = DefaultRouter()
-router.register("tags", TagViewSet)
-router.register("ingredients", IngredientViewSet)
-router.register("recipes", RecipeViewSet, "recipes")
-router.register("users", UserViewSet)
+router_v1 = DefaultRouter()
+router_v1.register("tags", TagViewSet)
+router_v1.register("ingredients", IngredientViewSet)
+router_v1.register("recipes", RecipeViewSet, "recipes")
+router_v1.register("users", UserViewSet)
 
 urlpatterns = (
-    path("", include(router.urls)),
+    path("", include(router_v1.urls)),
     path("auth/", include("djoser.urls.authtoken")),
 )

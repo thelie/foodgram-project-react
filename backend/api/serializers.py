@@ -78,7 +78,16 @@ class UserSubscribeSerializer(UserSerializer):
             "recipes",
             "recipes_count",
         )
-        read_only_fields = ("__all__",)
+        read_only_fields = (
+            "email",
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "is_subscribed",
+            "recipes",
+            "recipes_count",
+        )
 
     def get_is_subscribed(*args):
         return True
@@ -103,7 +112,12 @@ class TagSerializer(ModelSerializer):
             "color",
             "slug",
         )
-        read_only_fields = ("__all__",)
+        read_only_fields = (
+            "id",
+            "name",
+            "color",
+            "slug",
+        )
 
 
 class IngredientSerializer(ModelSerializer):
@@ -114,7 +128,11 @@ class IngredientSerializer(ModelSerializer):
             "name",
             "measurement_unit",
         )
-        read_only_fields = ("__all__",)
+        read_only_fields = (
+            "id",
+            "name",
+            "measurement_unit",
+        )
 
 
 class RecipeSerializer(ModelSerializer):
@@ -236,4 +254,9 @@ class AddDelSerializer(ModelSerializer):
             "image",
             "cooking_time",
         )
-        read_only_fields = ("__all__",)
+        read_only_fields = (
+            "id",
+            "name",
+            "image",
+            "cooking_time",
+        )

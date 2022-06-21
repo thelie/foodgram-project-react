@@ -61,7 +61,11 @@ class UserViewSet(DjoserUserViewSet):
         ),
         detail=True,
     )
-    def subscribe(self, request, id):
+    def subscribe(
+        self,
+        request,
+        id,
+    ):
         user = self.request.user
         if user.is_anonymous:
             return Response(status=HTTP_401_UNAUTHORIZED)

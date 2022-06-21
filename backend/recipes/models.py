@@ -33,19 +33,19 @@ def null_validator(value):
 
 class Tag(Model):
     name = CharField(
-        verbose_name="Тэг",
+        "Тэг",
         max_length=200,
         unique=True,
     )
     color = CharField(
-        verbose_name="Цветовой HEX-код",
+        "Цветовой HEX-код",
         max_length=7,
         blank=True,
         null=True,
         default="FF",
     )
     slug = CharField(
-        verbose_name="Слаг тэга",
+        "Слаг тэга",
         max_length=200,
         unique=True,
     )
@@ -75,12 +75,12 @@ class Tag(Model):
 
 class Ingredient(Model):
     name = CharField(
-        verbose_name="Ингридиент",
+        "Ингридиент",
         max_length=200,
         unique=True,
     )
     measurement_unit = CharField(
-        verbose_name="Единицы измерения",
+        "Единицы измерения",
         max_length=200,
     )
 
@@ -111,7 +111,7 @@ class Recipe(Model):
         on_delete=CASCADE,
     )
     name = CharField(
-        verbose_name="Название блюда",
+        "Название блюда",
         max_length=200,
     )
     pub_date = DateTimeField(
@@ -129,11 +129,8 @@ class Recipe(Model):
         related_name="recipes",
         to="Tag",
     )
-    image = ImageField(verbose_name="Изображение блюда", upload_to="recipe_images/")
-    text = TextField(
-        verbose_name="Описание блюда",
-        max_length=5000,
-    )
+    image = ImageField("Изображение блюда", upload_to="recipe_images/")
+    text = TextField("Описание блюда")
     cooking_time = PositiveSmallIntegerField(
         verbose_name="Время приготовления",
         default=0,
