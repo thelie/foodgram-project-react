@@ -1,3 +1,4 @@
+import io
 from datetime import datetime as dt
 
 from django.conf import settings
@@ -25,6 +26,7 @@ from rest_framework.status import (
     HTTP_401_UNAUTHORIZED,
 )
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from reportlab.pdfgen import canvas
 
 from .serializers import (
     AddDelSerializer,
@@ -116,6 +118,23 @@ class IngredientViewSet(ReadOnlyModelViewSet):
     search_fields = ("^name",)
 
 
+def calc_shopping_cart(recipes):
+    ingredients = AmountIngredient.objects.filter(recipe__in=recipes).values(
+        "amount",
+        ingredient=F("ingredients__name"),
+        measure=F("ingredients__measurement_unit"),
+    )
+
+    shopping_list = {}
+    for i in ingredients:
+        if i["ingredient"] not in shopping_list:
+            shopping_list[i["ingredient"]] = [i["amount"], i["measure"]]
+        else:
+            shopping_list[i["ingredient"]][0] += i["amount"]
+
+    return shopping_list
+
+
 class RecipeViewSet(ModelViewSet):
     serializer_class = RecipeSerializer
     permission_classes = (AuthorStaffOrReadOnly,)
@@ -158,28 +177,30 @@ class RecipeViewSet(ModelViewSet):
         user = self.request.user
         if not user.shopping_cart.exists():
             return Response(status=HTTP_400_BAD_REQUEST)
+
         recipes = Recipe.objects.filter(shopping_cart__owner=user).values("id")
-        ingredients = AmountIngredient.objects.filter(recipe__in=recipes).values(
-            "amount",
-            ingredient=F("ingredients__name"),
-            measure=F("ingredients__measurement_unit"),
-        )
+        shopping_list = calc_shopping_cart(recipes)
 
-        shopping_list = {}
-        for i in ingredients:
-            if i["ingredient"] not in shopping_list:
-                shopping_list[i["ingredient"]] = [i["amount"], i["measure"]]
-            else:
-                shopping_list[i["ingredient"]][0] += i["amount"]
+        file_extension = "pdf"
+        filename = f"{user}_shopping_list.{file_extension}"
 
-        filename = f"{user}_shopping_list.txt"
-        filepath = settings.MEDIA_ROOT / filename
-        with open(filepath, "w") as file:
-            file.write(f"Список покупок\n\n{user}\n\n{dt.now()}\n\n")
-            for key, value in shopping_list.items():
-                file.write(f"{key}: {value[0]} {value[1]} \n")
+        pdf_file = canvas.Canvas(filename)
+        pdf_title = f"Список покупок — {user} {dt.now()}"
 
-        shopping_list = open(filepath, "r")
-        response = HttpResponse(shopping_list, content_type="text.txt")
-        response["Content-Disposition"] = f"attachment; filename={filename}"
-        return response
+        pdf_file.setTitle(pdf_title)
+        pdf_file.setFillColorRGB(0, 0, 0)
+        pdf_file.drawCentredString(290, 720, pdf_title)
+        pdf_file.line(30, 710, 550, 710)
+
+        pdf_text = ""
+
+        for key, value in shopping_list.items():
+            pdf_text += f"{key}: {value[0]} {value[1]}\n"
+
+        pdf_file.drawText(pdf_text)
+        pdf_file.save()
+
+        response = HttpResponse(shopping_list, content_type="application/pdf")
+        response["Content-Disposition"] = f"attachment; filename={pdf_file}"
+
+        return pdf_file
