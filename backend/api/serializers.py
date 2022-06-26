@@ -4,7 +4,9 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework.serializers import (ModelSerializer, SerializerMethodField,
                                         ValidationError)
 from rest_framework.settings import api_settings
+
 from recipes.models import Ingredient, Recipe, Tag
+
 from .services import set_amount_ingredients
 
 User = get_user_model()
