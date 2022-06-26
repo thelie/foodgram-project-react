@@ -1,14 +1,12 @@
 from django.shortcuts import get_object_or_404
-from recipes.models import AmountIngredient, Recipe
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import BasePermission, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import (BasePermission,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
-from rest_framework.status import (
-    HTTP_201_CREATED,
-    HTTP_204_NO_CONTENT,
-    HTTP_400_BAD_REQUEST,
-    HTTP_401_UNAUTHORIZED,
-)
+from rest_framework.status import (HTTP_201_CREATED, HTTP_204_NO_CONTENT,
+                                   HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED)
+
+from recipes.models import AmountIngredient, Recipe
 
 
 class AuthorStaffOrReadOnly(IsAuthenticatedOrReadOnly):
@@ -37,7 +35,9 @@ class PageLimitPagination(PageNumberPagination):
 def set_amount_ingredients(recipe, ingredients):
     for ingredient in ingredients:
         AmountIngredient.objects.get_or_create(
-            recipe=recipe, ingredients=ingredient["ing"], amount=ingredient["amount"]
+            recipe=recipe,
+            ingredients=ingredient["ing"],
+            amount=ingredient["amount"],
         )
 
 

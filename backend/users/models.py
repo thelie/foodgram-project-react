@@ -24,7 +24,9 @@ class MyUser(AbstractUser):
         verbose_name="Уникальный юзернейм",
         max_length=MAX_LEN_CHARFIELD,
         unique=True,
-        help_text=(f"Required.{MIN_USERNAME_LENGTH}-{MAX_LEN_CHARFIELD} characters."),
+        help_text=(
+            f"Required.{MIN_USERNAME_LENGTH}-{MAX_LEN_CHARFIELD} characters."
+        ),
     )
     first_name = CharField(
         verbose_name="Имя",

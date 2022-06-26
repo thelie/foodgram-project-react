@@ -1,13 +1,11 @@
 from django.contrib.auth import get_user_model
 from django.db.models import F
 from drf_extra_fields.fields import Base64ImageField
-from recipes.models import Ingredient, Recipe, Tag
-from rest_framework.serializers import (
-    ModelSerializer,
-    SerializerMethodField,
-    ValidationError,
-)
+from rest_framework.serializers import (ModelSerializer, SerializerMethodField,
+                                        ValidationError)
 from rest_framework.settings import api_settings
+
+from recipes.models import Ingredient, Recipe, Tag
 
 from .services import set_amount_ingredients
 
@@ -163,10 +161,9 @@ class RecipeSerializer(ModelSerializer):
         )
 
     def get_ingredients(self, obj):
-        ingredients = obj.ingredients.values(
+        return obj.ingredients.values(
             "id", "name", "measurement_unit", amount=F("recipe__amount")
         )
-        return ingredients
 
     def get_is_favorited(self, obj):
         user = self.context.get("request").user
@@ -194,7 +191,9 @@ class RecipeSerializer(ModelSerializer):
 
         ingredients = self.initial_data.get("ingredients")
         if not isinstance(ingredients, list):
-            raise ValidationError('"ingredients" предоставлено в неверном формате')
+            raise ValidationError(
+                '"ingredients" предоставлено в неверном формате'
+            )
         valid_ingredients = []
         for ing in ingredients:
             amount = str(ing.get("amount"))

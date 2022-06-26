@@ -1,10 +1,7 @@
-from django.contrib.auth import get_user_model
-from rest_framework.serializers import (
-    ModelSerializer,
-    ValidationError,
-    SerializerMethodField,
-)
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from rest_framework.serializers import (ModelSerializer, SerializerMethodField,
+                                        ValidationError)
 
 User = get_user_model()
 
@@ -14,7 +11,14 @@ class UserSerializer(ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("username", "email", "id", "first_name", "last_name", "password")
+        fields = (
+            "username",
+            "email",
+            "id",
+            "first_name",
+            "last_name",
+            "password",
+        )
         read_only_fields = (
             "id",
             "is_subscribed",
@@ -36,7 +40,8 @@ class UserSerializer(ModelSerializer):
         if len(username) < 3:
             raise ValidationError(
                 "Длина username допустима от "
-                f"{settings.MIN_USERNAME_LENGTH} до {settings.MAX_CHARFIELD_LENGTH}"
+                f"{settings.MIN_USERNAME_LENGTH} "
+                f"до {settings.MAX_CHARFIELD_LENGTH}"
             )
         if not username.isalpha():
             raise ValidationError("В username допустимы только буквы.")
@@ -80,11 +85,15 @@ class UserSubscriptionsSerializer(UserSerializer):
         return True
 
     def get_recipes(self, obj):
-        limit = int(self.context.get("request").query_params.get("recipes_limit"))
+        limit = int(
+            self.context.get("request").query_params.get("recipes_limit")
+        )
 
         if not limit:
             limit = settings.PAGE_SIZE
-        return obj.recipes.values("id", "name", "image", "cooking_time")[:limit]
+        return obj.recipes.values("id", "name", "image", "cooking_time")[
+            :limit
+        ]
 
     def get_recipes_count(self, obj):
         return obj.recipes.count

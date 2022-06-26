@@ -1,47 +1,26 @@
-import io
 from datetime import datetime as dt
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import F
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet as DjoserUserViewSet
-from recipes.models import (
-    AmountIngredient,
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Subscription,
-    Tag,
-)
+from reportlab.pdfgen import canvas
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
-from rest_framework.status import (
-    HTTP_201_CREATED,
-    HTTP_204_NO_CONTENT,
-    HTTP_400_BAD_REQUEST,
-    HTTP_401_UNAUTHORIZED,
-)
+from rest_framework.status import (HTTP_201_CREATED, HTTP_204_NO_CONTENT,
+                                   HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED)
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
-from reportlab.pdfgen import canvas
 
-from .serializers import (
-    AddDelSerializer,
-    IngredientSerializer,
-    RecipeSerializer,
-    TagSerializer,
-    UserSerializer,
-    UserSubscribeSerializer,
-)
-from .services import (
-    AdminOrReadOnly,
-    AuthorStaffOrReadOnly,
-    PageLimitPagination,
-    add_del_recipe,
-)
+from recipes.models import (AmountIngredient, Favorite, Ingredient, Recipe,
+                            ShoppingCart, Subscription, Tag)
+
+from .serializers import (AddDelSerializer, IngredientSerializer,
+                          RecipeSerializer, TagSerializer, UserSerializer,
+                          UserSubscribeSerializer)
+from .services import (AdminOrReadOnly, AuthorStaffOrReadOnly,
+                       PageLimitPagination, add_del_recipe)
 
 User = get_user_model()
 SYMBOL_FOR_SEARCH = (
@@ -72,13 +51,17 @@ class UserViewSet(DjoserUserViewSet):
         if user.is_anonymous:
             return Response(status=HTTP_401_UNAUTHORIZED)
         author = get_object_or_404(User, id=id)
-        serializer = UserSubscribeSerializer(author, context={"request": request})
+        serializer = UserSubscribeSerializer(
+            author, context={"request": request}
+        )
 
         if self.request.method in (
             "GET",
             "POST",
         ):
-            obj, created = Subscription.objects.get_or_create(owner=user, author=author)
+            obj, created = Subscription.objects.get_or_create(
+                owner=user, author=author
+            )
             if created:
                 return Response(serializer.data, status=HTTP_201_CREATED)
             else:

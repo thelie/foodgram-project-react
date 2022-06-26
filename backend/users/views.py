@@ -1,15 +1,12 @@
-from djoser.views import UserViewSet as DjoserViewSet
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from djoser.views import UserViewSet as DjoserViewSet
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-from rest_framework.status import (
-    HTTP_201_CREATED,
-    HTTP_204_NO_CONTENT,
-    HTTP_400_BAD_REQUEST,
-    HTTP_401_UNAUTHORIZED,
-)
+from rest_framework.status import (HTTP_201_CREATED, HTTP_204_NO_CONTENT,
+                                   HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED)
+
 from recipes.models import Subscription
 
 from .serializers import UserSerializer, UserSubscriptionsSerializer
@@ -35,13 +32,17 @@ class CustomUserViewSet(DjoserViewSet):
         if user.is_anonymous:
             return Response(status=HTTP_401_UNAUTHORIZED)
         author = get_object_or_404(User, id=id)
-        serializer = UserSubscriptionsSerializer(author, context={"request": request})
+        serializer = UserSubscriptionsSerializer(
+            author, context={"request": request}
+        )
 
         if self.request.method in (
             "GET",
             "POST",
         ):
-            obj, created = Subscription.objects.get_or_create(owner=user, author=author)
+            obj, created = Subscription.objects.get_or_create(
+                owner=user, author=author
+            )
             if created:
                 return Response(serializer.data, status=HTTP_201_CREATED)
             else:
