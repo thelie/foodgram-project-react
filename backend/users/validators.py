@@ -31,10 +31,11 @@ class OneOfTwoValidator:
                 Переданное значение содержит символы разрешённые обоими
                 регулярными выражениями.
     """
-    first_regex = '[^а-яёА-ЯЁ]+'
-    second_regex = '[^a-zA-Z]+'
+
+    first_regex = "[^а-яёА-ЯЁ]+"
+    second_regex = "[^a-zA-Z]+"
     message = (
-        'Переданное значение на разных языках либо содержит что-то кроме букв.'
+        "Переданное значение на разных языках либо содержит что-то кроме букв."
     )
 
     def __init__(self, first_regex=None, second_regex=None, message=None):
@@ -68,8 +69,9 @@ class MinLenValidator:
         ValidationError:
             Переданное значение слишком короткое.
     """
+
     min_len = 0
-    message = 'Переданное значение слишком короткое.'
+    message = "Переданное значение слишком короткое."
 
     def __init__(self, min_len=None, message=None):
         if min_len is not None:

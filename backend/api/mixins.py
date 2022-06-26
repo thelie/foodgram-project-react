@@ -5,8 +5,12 @@
 from django.shortcuts import get_object_or_404
 
 from rest_framework.response import Response
-from rest_framework.status import (HTTP_201_CREATED, HTTP_204_NO_CONTENT,
-                                   HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED)
+from rest_framework.status import (
+    HTTP_201_CREATED,
+    HTTP_204_NO_CONTENT,
+    HTTP_400_BAD_REQUEST,
+    HTTP_401_UNAUTHORIZED,
+)
 
 from . import conf
 
@@ -48,8 +52,8 @@ class AddDelViewMixin:
             Responce: Статус подтверждающий/отклоняющий действие.
         """
         assert self.add_serializer is not None, (
-            f'{self.__class__.__name__} should include '
-            'an `add_serializer` attribute.'
+            f"{self.__class__.__name__} should include "
+            "an `add_serializer` attribute."
         )
 
         user = self.request.user
@@ -65,7 +69,7 @@ class AddDelViewMixin:
 
         obj = get_object_or_404(self.queryset, id=obj_id)
         serializer = self.add_serializer(
-            obj, context={'request': self.request}
+            obj, context={"request": self.request}
         )
         obj_exist = meneger.filter(id=obj_id).exists()
 

@@ -1,102 +1,82 @@
 from datetime import datetime as dt
+from urllib.parse import unquote
 
 from django.contrib.auth import get_user_model
-from django.db.models import F
+from django.db.models import F, Sum
 from django.http.response import HttpResponse
-from django.shortcuts import get_object_or_404
+
 from djoser.views import UserViewSet as DjoserUserViewSet
-from recipes.models import (
-    AmountIngredient,
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Subscription,
-    Tag,
-)
-from reportlab.pdfgen import canvas
+
+from recipes.models import AmountIngredient, Ingredient, Recipe, Tag
+
 from rest_framework.decorators import action
-from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
-from rest_framework.status import (
-    HTTP_201_CREATED,
-    HTTP_204_NO_CONTENT,
-    HTTP_400_BAD_REQUEST,
-    HTTP_401_UNAUTHORIZED,
-)
+from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
+from . import conf
+from .mixins import AddDelViewMixin
+from .paginators import PageLimitPagination
+from .permissions import AdminOrReadOnly, AuthorStaffOrReadOnly
 from .serializers import (
-    AddDelSerializer,
     IngredientSerializer,
     RecipeSerializer,
+    ShortRecipeSerializer,
     TagSerializer,
-    UserSerializer,
     UserSubscribeSerializer,
 )
-from .services import (
-    AdminOrReadOnly,
-    AuthorStaffOrReadOnly,
-    PageLimitPagination,
-    add_del_recipe,
-)
+from .services import incorrect_layout
 
 User = get_user_model()
-SYMBOL_FOR_SEARCH = (
-    "1",
-    "true",
-)
 
 
-class UserViewSet(DjoserUserViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+class UserViewSet(DjoserUserViewSet, AddDelViewMixin):
+    """Работает с пользователями.
+
+    ViewSet для работы с пользователми - вывод таковых,
+    регистрация.
+    Для авторизованных пользователей —
+    возможность подписаться на автора рецепта.
+    """
+
     pagination_class = PageLimitPagination
+    add_serializer = UserSubscribeSerializer
 
-    @action(
-        methods=(
-            "get",
-            "post",
-            "delete",
-        ),
-        detail=True,
-    )
-    def subscribe(
-        self,
-        request,
-        id,
-    ):
-        user = self.request.user
-        if user.is_anonymous:
-            return Response(status=HTTP_401_UNAUTHORIZED)
-        author = get_object_or_404(User, id=id)
-        serializer = UserSubscribeSerializer(
-            author, context={"request": request}
-        )
+    @action(methods=conf.ACTION_METHODS, detail=True)
+    def subscribe(self, request, id):
+        """Создаёт/удалет связь между пользователями.
 
-        if self.request.method in (
-            "GET",
-            "POST",
-        ):
-            obj, created = Subscription.objects.get_or_create(
-                owner=user, author=author
-            )
-            if created:
-                return Response(serializer.data, status=HTTP_201_CREATED)
-            else:
-                return Response(status=HTTP_400_BAD_REQUEST)
-        if self.request.method in ("DELETE",):
-            obj = get_object_or_404(Subscription, owner=user, author=author)
-            obj.delete()
-            return Response(status=HTTP_204_NO_CONTENT)
-        return Response(status=HTTP_400_BAD_REQUEST)
+        Вызов метода через url: */user/<int:id>/subscribe/.
+
+        Args:
+            request (Request): Не используется.
+            id (int, str):
+                id пользователя, на которого желает подписаться
+                или отписаться запращивающий пользователь.
+
+        Returns:
+            Responce: Статус подтверждающий/отклоняющий действие.
+        """
+        return self.add_del_obj(id, conf.SUBSCRIBE_M2M)
 
     @action(methods=("get",), detail=False)
     def subscriptions(self, request):
+        """Список подписок пользоваетеля.
+
+        Вызов метода через url: */user/<int:id>/subscribtions/.
+
+        Args:
+            request (Request): Не используется.
+
+        Returns:
+            Responce:
+                401 - для неавторизованного пользователя.
+                Список подписок для авторизованного пользователя.
+        """
         user = self.request.user
         if user.is_anonymous:
             return Response(status=HTTP_401_UNAUTHORIZED)
-        authors = User.objects.filter(following__owner=user)
+        authors = user.subscribe.all()
         pages = self.paginate_queryset(authors)
         serializer = UserSubscribeSerializer(
             pages, many=True, context={"request": request}
@@ -105,104 +85,182 @@ class UserViewSet(DjoserUserViewSet):
 
 
 class TagViewSet(ReadOnlyModelViewSet):
+    """Работает с тэгами.
+
+    Изменение и создание тэгов разрешено только админам.
+    """
+
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = (AdminOrReadOnly,)
-    pagination_class = None
 
 
 class IngredientViewSet(ReadOnlyModelViewSet):
+    """Работет с игридиентами.
+
+    Изменение и создание ингридиентов разрешено только админам.
+    """
+
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (AdminOrReadOnly,)
-    pagination_class = None
-    filter_backends = (SearchFilter,)
-    search_fields = ("^name",)
+
+    def get_queryset(self):
+        """Получает queryset в соответствии с параметрами запроса.
+
+        Реализован поиск объектов по совпадению в начале назавния,
+        также добавляются результаты по совпадению в середине.
+        При наборе названия в неправильной раскладке - латинские символы
+        преобразуются в кириллицу (для стандартной раскладки).
+        Также прописные буквы преобразуются в строчные,
+        так как все ингридиенты в базе записаны в нижнем регистре.
+
+        Returns:
+            QuerySet: Список запрошенных объектов.
+        """
+        name = self.request.query_params.get(conf.SEARCH_ING_NAME)
+        queryset = self.queryset
+        if name:
+            if name[0] == "%":
+                name = unquote(name)
+            else:
+                name = name.translate(incorrect_layout)
+            name = name.lower()
+            stw_queryset = list(queryset.filter(name__startswith=name))
+            cnt_queryset = queryset.filter(name__contains=name)
+            stw_queryset.extend(
+                [i for i in cnt_queryset if i not in stw_queryset]
+            )
+            queryset = stw_queryset
+        return queryset
 
 
-def calc_shopping_cart(recipes):
-    ingredients = AmountIngredient.objects.filter(recipe__in=recipes).values(
-        "amount",
-        ingredient=F("ingredients__name"),
-        measure=F("ingredients__measurement_unit"),
-    )
+class RecipeViewSet(ModelViewSet, AddDelViewMixin):
+    """Работает с рецептами.
 
-    shopping_list = {}
-    for i in ingredients:
-        if i["ingredient"] not in shopping_list:
-            shopping_list[i["ingredient"]] = [i["amount"], i["measure"]]
-        else:
-            shopping_list[i["ingredient"]][0] += i["amount"]
+    Вывод, создание, редактирование, добавление/удаление
+    в избранное и список покупок.
+    Отправка текстового файла со списком покупок.
+    Для авторизованных пользователей — возможность добавить
+    рецепт в избранное и в список покупок.
+    Изменять рецепт может только автор или админы.
+    """
 
-    return shopping_list
-
-
-class RecipeViewSet(ModelViewSet):
+    queryset = Recipe.objects.select_related("author")
     serializer_class = RecipeSerializer
     permission_classes = (AuthorStaffOrReadOnly,)
     pagination_class = PageLimitPagination
+    add_serializer = ShortRecipeSerializer
 
     def get_queryset(self):
-        queryset = Recipe.objects.all().select_related("author")
-        user = self.request.user
+        """Получает queryset в соответствии с параметрами запроса.
 
-        tags = self.request.query_params.getlist("tags")
+        Returns:
+            QuerySet: Список запрошенных объектов.
+        """
+        queryset = self.queryset
+
+        tags = self.request.query_params.getlist(conf.TAGS)
         if tags:
             queryset = queryset.filter(tags__slug__in=tags).distinct()
 
-        is_in_shopping = self.request.query_params.get("is_in_shopping_cart")
-        if is_in_shopping in SYMBOL_FOR_SEARCH:
-            if not user.is_anonymous:
-                queryset = queryset.filter(shopping_cart__owner=user)
-
-        is_favorited = self.request.query_params.get("is_favorited")
-        if is_favorited in SYMBOL_FOR_SEARCH:
-            if not user.is_anonymous:
-                queryset = queryset.filter(favorites__owner=user)
-
-        author = self.request.query_params.get("author")
+        author = self.request.query_params.get(conf.AUTHOR)
         if author:
             queryset = queryset.filter(author=author)
 
+        # Следующие фильтры только для авторизованного пользователя
+        user = self.request.user
+        if user.is_anonymous:
+            return queryset
+
+        is_in_shopping = self.request.query_params.get(conf.SHOP_CART)
+        if is_in_shopping in conf.SYMBOL_TRUE_SEARCH:
+            queryset = queryset.filter(cart=user.id)
+        elif is_in_shopping in conf.SYMBOL_FALSE_SEARCH:
+            queryset = queryset.exclude(cart=user.id)
+
+        is_favorited = self.request.query_params.get(conf.FAVORITE)
+        if is_favorited in conf.SYMBOL_TRUE_SEARCH:
+            queryset = queryset.filter(favorite=user.id)
+        if is_favorited in conf.SYMBOL_FALSE_SEARCH:
+            queryset = queryset.exclude(favorite=user.id)
+
         return queryset
 
-    @action(methods=("get", "delete", "post"), detail=True)
+    @action(methods=conf.ACTION_METHODS, detail=True)
     def favorite(self, request, pk):
-        return add_del_recipe(self, pk, Favorite, AddDelSerializer)
+        """Добавляет/удалет рецепт в `избранное`.
 
-    @action(methods=("get", "delete", "post"), detail=True)
+        Вызов метода через url: */recipe/<int:pk>/favorite/.
+
+        Args:
+            request (Request): Не используется.
+            pk (int, str):
+                id рецепта, который нужно добавить/удалить из `избранного`.
+
+        Returns:
+            Responce: Статус подтверждающий/отклоняющий действие.
+        """
+        return self.add_del_obj(pk, conf.FAVORITE_M2M)
+
+    @action(methods=conf.ACTION_METHODS, detail=True)
     def shopping_cart(self, request, pk):
-        return add_del_recipe(self, pk, ShoppingCart, AddDelSerializer)
+        """Добавляет/удалет рецепт в `список покупок`.
+
+        Вызов метода через url: *//recipe/<int:pk>/shopping_cart/.
+
+        Args:
+            request (Request): Не используется.
+            pk (int, str):
+                id рецепта, который нужно добавить/удалить в `корзину покупок`.
+
+        Returns:
+            Responce: Статус подтверждающий/отклоняющий действие.
+        """
+        return self.add_del_obj(pk, conf.SHOP_CART_M2M)
 
     @action(methods=("get",), detail=False)
     def download_shopping_cart(self, request):
+        """Загружает файл *.txt со списком покупок.
+
+        Считает сумму ингредиентов в рецептах выбранных для покупки.
+        Возвращает текстовый файл со списком ингредиентов.
+        Вызов метода через url:  */recipe/<int:id>/download_shopping_cart/.
+
+        Args:
+            request (Request): Не используется.
+
+        Returns:
+            Responce: Ответ с текстовым файлом.
+        """
         user = self.request.user
-        if not user.shopping_cart.exists():
+        if not user.carts.exists():
             return Response(status=HTTP_400_BAD_REQUEST)
+        ingredients = (
+            AmountIngredient.objects.filter(
+                recipe__in=(user.carts.values("id"))
+            )
+            .values(
+                ingredient=F("ingredients__name"),
+                measure=F("ingredients__measurement_unit"),
+            )
+            .annotate(amount=Sum("amount"))
+        )
 
-        recipes = Recipe.objects.filter(shopping_cart__owner=user).values("id")
-        shopping_list = calc_shopping_cart(recipes)
+        filename = f"{user.username}_shopping_list.txt"
+        shopping_list = (
+            f"Список покупок для:\n\n{user.first_name}\n\n"
+            f"{dt.now().strftime(conf.DATE_TIME_FORMAT)}\n\n"
+        )
+        for ing in ingredients:
+            shopping_list += (
+                f'{ing["ingredient"]}: {ing["amount"]} {ing["measure"]}\n'
+            )
 
-        file_extension = "pdf"
-        filename = f"{user}_shopping_list.{file_extension}"
+        shopping_list += "\n\nПосчитано в Foodgram"
 
-        pdf_file = canvas.Canvas(filename)
-        pdf_title = f"Список покупок — {user} {dt.now()}"
-
-        pdf_file.setTitle(pdf_title)
-        pdf_file.setFillColorRGB(0, 0, 0)
-        pdf_file.drawCentredString(290, 720, pdf_title)
-        pdf_file.line(30, 710, 550, 710)
-
-        pdf_text = ""
-
-        for key, value in shopping_list.items():
-            pdf_text += f"{key}: {value[0]} {value[1]}\n"
-
-        pdf_file.drawText(pdf_text)
-        pdf_file.save()
-
-        response = HttpResponse(shopping_list, content_type="application/pdf")
-        response["Content-Disposition"] = f"attachment; filename={pdf_file}"
-
-        return pdf_file
+        response = HttpResponse(
+            shopping_list, content_type="text.txt; charset=utf-8"
+        )
+        response["Content-Disposition"] = f"attachment; filename={filename}"
+        return response

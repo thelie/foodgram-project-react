@@ -1,20 +1,7 @@
-from django.contrib.admin import (
-    ModelAdmin,
-    TabularInline,
-    register,
-    site,
-)
+from django.contrib.admin import ModelAdmin, TabularInline, register, site
 from django.utils.safestring import mark_safe
 
-from .models import (
-    AmountIngredient,
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Subscription,
-    Tag,
-)
+from .models import AmountIngredient, Ingredient, Recipe, Tag
 
 site.site_header = "Администрирование Foodgram"
 EMPTY_VALUE_DISPLAY = "Значение не указано"
@@ -25,7 +12,7 @@ class IngredientInline(TabularInline):
     extra = 2
 
 
-@register(Favorite, AmountIngredient, ShoppingCart, Subscription)
+@register(AmountIngredient)
 class LinksAdmin(ModelAdmin):
     pass
 
@@ -80,7 +67,6 @@ class RecipeAdmin(ModelAdmin):
         return mark_safe(f'<img src={obj.image.url} width="80" hieght="30"')
 
     get_image.short_description = "Изображение"
-    Recipe.number_adds.short_description = "Количество добавлений"
 
 
 @register(Tag)

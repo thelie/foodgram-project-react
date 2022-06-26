@@ -1,24 +1,27 @@
 from pathlib import Path
 
-from decouple import config
+from decouple import Csv, config
 
-DEBUG = config("DEBUG", default=True)
+# Eсли true то будет использована прилагаемая база SQLite c записанными данными
+REVIEW = 0
+
+DEBUG = config("DEBUG", default=False, cast=bool)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY", default="string_from_.env")
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*").split()
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*", cast=Csv())
 
 CSRF_TRUSTED_ORIGINS = config(
-    "CSRF_TRUSTED_ORIGINS", default="http://localhost http://127.0.0.1"
-).split()
+    "CSRF_TRUSTED_ORIGINS",
+    default="http://localhost http://127.0.0.1",
+    cast=Csv(),
+)
 
 ROOT_URLCONF = "foodgram.urls"
 
 WSGI_APPLICATION = "foodgram.wsgi.application"
-
-AUTH_USER_MODEL = "users.MyUser"
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -70,9 +73,11 @@ DATABASES = {
         "USER": config("POSTGRES_USER", default="postgres"),
         "PASSWORD": config("POSTGRES_PASSWORD", default="password"),
         "HOST": config("DB_HOST", default="db"),
-        "PORT": config("DB_PORT", default=5432),
+        "PORT": config("DB_PORT", default=5432, cast=int),
     }
 }
+
+AUTH_USER_MODEL = "users.MyUser"
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -90,24 +95,22 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 REST_FRAMEWORK = {
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
-    ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.TokenAuthentication",
     ],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 6,
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+    ],
 }
 
 DJOSER = {
     "LOGIN_FIELD": "email",
     "HIDE_USERS": False,
     "PERMISSIONS": {
-        "resipe": ("rest_framework.permissions.AllowAny",),
-        "recipe_list": ("rest_framework.permissions.AllowAny",),
-        "user": ("rest_framework.permissions.AllowAny",),
-        "user_list": ("rest_framework.permissions.AllowAny",),
+        "resipe": ("api.permissions.AuthorStaffOrReadOnly,",),
+        "recipe_list": ("api.permissions.AuthorStaffOrReadOnly",),
+        "user": ("api.permissions.OwnerUserOrReadOnly",),
+        "user_list": ("api.permissions.OwnerUserOrReadOnly",),
     },
     "SERIALIZERS": {
         "user": "api.serializers.UserSerializer",
@@ -130,12 +133,13 @@ MEDIA_ROOT = BASE_DIR / MEDIA_URL
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-if DEBUG:
-    import os
+PASSWORD_RESET_TIMEOUT = 60 * 60
 
+# for review
+if REVIEW:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+            "NAME": str(BASE_DIR / "db.sqlite3"),
         }
     }
