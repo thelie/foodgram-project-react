@@ -40,6 +40,8 @@ jobs:
         host: ${{ secrets.HOST_IP }}
         username: ${{ secrets.HOST_USER }}
         key: ${{ secrets.SSH_KEY }}
+        passphrase: ${{ secrets.SSH_PASSPHRASE }}
+
         script: |
           sudo rm -rf foodgram/
           mkdir -p foodgram/
@@ -52,6 +54,7 @@ jobs:
           host: ${{ secrets.HOST_IP }}
           username: ${{ secrets.HOST_USER }}
           privateKey: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
 
   build_push_backend_to_DockerHub:
     name: Building back image and pushing it to Docker Hub
