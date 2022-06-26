@@ -1,5 +1,7 @@
-from rest_framework.permissions import (BasePermission,
-                                        IsAuthenticatedOrReadOnly)
+from rest_framework.permissions import (
+    BasePermission,
+    IsAuthenticatedOrReadOnly,
+)
 
 
 class AuthorStaffOrReadOnly(IsAuthenticatedOrReadOnly):
