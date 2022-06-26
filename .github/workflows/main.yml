@@ -25,7 +25,6 @@ jobs:
       - name: Test with flake8
         run: |
           python -m flake8 backend/
-          
 
   copy_infra_to_server:
     name: Copy docker-compose.yml and nginx.conf
