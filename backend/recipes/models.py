@@ -1,10 +1,20 @@
 from django.contrib.auth import get_user_model
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db.models import (CASCADE, CharField, CheckConstraint,
-                              DateTimeField, F, ForeignKey, ImageField,
-                              ManyToManyField, Model,
-                              PositiveSmallIntegerField, Q, TextField,
-                              UniqueConstraint)
+from django.db.models import (
+    CASCADE,
+    CharField,
+    CheckConstraint,
+    DateTimeField,
+    F,
+    ForeignKey,
+    ImageField,
+    ManyToManyField,
+    Model,
+    PositiveSmallIntegerField,
+    Q,
+    TextField,
+    UniqueConstraint,
+)
 from django.db.models.functions import Length
 from django.forms import ValidationError
 

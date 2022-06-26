@@ -5,6 +5,15 @@ from django.db.models import F
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet as DjoserUserViewSet
+from recipes.models import (
+    AmountIngredient,
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag,
+)
 from reportlab.pdfgen import canvas
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
@@ -16,16 +25,6 @@ from rest_framework.status import (
     HTTP_401_UNAUTHORIZED,
 )
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
-
-from recipes.models import (
-    AmountIngredient,
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Subscription,
-    Tag,
-)
 
 from .serializers import (
     AddDelSerializer,
