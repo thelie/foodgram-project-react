@@ -22,11 +22,6 @@ User = get_user_model()
 
 
 class ShortRecipeSerializer(ModelSerializer):
-    """Сериализатор для модели Recipe.
-
-    Определён укороченный набор полей для некоторых эндпоинтов.
-    """
-
     class Meta:
         model = Recipe
         fields = "id", "name", "image", "cooking_time"
@@ -34,8 +29,6 @@ class ShortRecipeSerializer(ModelSerializer):
 
 
 class UserSerializer(ModelSerializer):
-    """Сериализатор для использования с моделью User."""
-
     is_subscribed = SerializerMethodField()
 
     class Meta:
@@ -112,8 +105,6 @@ class UserSerializer(ModelSerializer):
 
 
 class UserSubscribeSerializer(UserSerializer):
-    """Сериализатор для вывода авторов на которых подписан текущий пользователь."""
-
     recipes = ShortRecipeSerializer(many=True, read_only=True)
     recipes_count = SerializerMethodField()
 
@@ -318,15 +309,6 @@ class RecipeSerializer(ModelSerializer):
         return recipe
 
     def update(self, recipe, validated_data):
-        """Обновляет рецепт.
-
-        Args:
-            recipe (Recipe): Рецепт для изменения.
-            validated_data (dict): Изменённые данные.
-
-        Returns:
-            Recipe: Обновлённый рецепт.
-        """
         tags = validated_data.get("tags")
         ingredients = validated_data.get("ingredients")
 
