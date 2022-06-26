@@ -3,7 +3,7 @@ from pathlib import Path
 from decouple import Csv, config
 
 # Eсли true то будет использована прилагаемая база SQLite c записанными данными
-REVIEW = 1
+REVIEW = True
 
 DEBUG = config('DEBUG', default=False, cast=bool)
 
@@ -66,22 +66,31 @@ TEMPLATES = [
     },
 ]
 
-DATABASES = {
-    'default': {
-        'ENGINE': config(
-            'DB_ENGINE', default='django.db.backends.postgresql'),
-        'NAME': config(
-            'DB_NAME', default='postgres'),
-        'USER': config(
-            'POSTGRES_USER', default='postgres'),
-        'PASSWORD': config(
-            'POSTGRES_PASSWORD', default='password'),
-        'HOST': config(
-            'DB_HOST', default='db'),
-        'PORT': config(
-            'DB_PORT', default=5432, cast=int)
+# for review
+if REVIEW:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': str(BASE_DIR / 'db.sqlite3'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': config(
+                'DB_ENGINE', default='django.db.backends.postgresql'),
+            'NAME': config(
+                'DB_NAME', default='postgres'),
+            'USER': config(
+                'POSTGRES_USER', default='postgres'),
+            'PASSWORD': config(
+                'POSTGRES_PASSWORD', default='password'),
+            'HOST': config(
+                'DB_HOST', default='db'),
+            'PORT': config(
+                'DB_PORT', default=5432, cast=int)
+        }
+    }
 
 AUTH_USER_MODEL = 'users.MyUser'
 
@@ -135,12 +144,3 @@ MEDIA_ROOT = BASE_DIR / MEDIA_URL
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 PASSWORD_RESET_TIMEOUT = 60 * 60
-
-# for review
-if REVIEW:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': str(BASE_DIR / 'db.sqlite3'),
-        }
-    }
