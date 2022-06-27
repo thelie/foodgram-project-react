@@ -46,3 +46,5 @@ sudo docker-compose exec foodgram_backend_1 python manage.py loader_csv
 ```
 sudo docker exec -it foodgram_backend_1 python manage.py loaddata data/dump.json
 ```
+
+ 
