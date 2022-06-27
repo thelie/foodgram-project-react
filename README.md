@@ -13,8 +13,11 @@ Foodgram - продуктовый помощник.
 
 ip: http://62.84.123.138/
 test login: testuser
+test email: test@foodgram.com
 test password: qYi7FProPMnq-2Wru!m4
+
 admin login: foodadmin
+admin email: foodadmin@foodgram.io
 admin password: qYi7FProPMnq-2Wru!m4
  
 ### Для запуска проекта на удаленном сервере:
